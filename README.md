@@ -1,11 +1,8 @@
 # GBCN Hymn App
 
 GBCN Hymn App is an Android-first React Native application built with Expo and
-TypeScript. This project currently provides only the application foundation and
-placeholder feature screens.
-
-Production hymn content, preferences, themes, and final branding are not
-implemented yet.
+TypeScript. This project currently provides the application foundation,
+approved application branding, and placeholder feature screens.
 
 ## Prerequisites
 

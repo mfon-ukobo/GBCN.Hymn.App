@@ -6,6 +6,7 @@ export interface ThemeColors {
   primary: string;
   primaryPressed: string;
   primaryContainer: string;
+  accent: string;
   onPrimary: string;
   background: string;
   surface: string;

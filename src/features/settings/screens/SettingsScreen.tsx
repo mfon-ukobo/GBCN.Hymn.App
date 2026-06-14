@@ -1,6 +1,7 @@
 import { StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { appBranding } from '@/branding';
 import { useThemedStyles } from '@/theme';
 
 export function SettingsScreen() {
@@ -17,6 +18,11 @@ export function SettingsScreen() {
         color: theme.colors.textPrimary,
         ...theme.typography.headingSmall,
       },
+      appName: {
+        marginTop: theme.spacing.sm,
+        color: theme.colors.textSecondary,
+        ...theme.typography.bodyMedium,
+      },
     }),
   );
 
@@ -25,6 +31,7 @@ export function SettingsScreen() {
       <Text accessibilityRole="header" style={styles.heading}>
         Settings
       </Text>
+      <Text style={styles.appName}>{appBranding.appName}</Text>
     </SafeAreaView>
   );
 }

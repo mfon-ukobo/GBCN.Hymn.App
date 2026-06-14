@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { appBranding, getBrandingLogo } from '@/branding';
 import { PreferencesProvider, usePreferences } from '@/features/preferences';
 import { initializeHymnStorage } from '@/infrastructure/database';
 import { AppNavigator } from '@/navigation';
@@ -36,6 +37,11 @@ function AppContent() {
         justifyContent: 'center',
         padding: activeTheme.spacing.lg,
         backgroundColor: activeTheme.colors.background,
+      },
+      startupLogo: {
+        width: 144,
+        height: 144,
+        marginBottom: activeTheme.spacing.lg,
       },
       errorHeading: {
         marginBottom: activeTheme.spacing.sm,
@@ -72,8 +78,14 @@ function AppContent() {
         </View>
       ) : !isDatabaseReady || !isHydrated ? (
         <View style={styles.centered}>
+          <Image
+            accessibilityLabel={`${appBranding.appName} logo`}
+            resizeMode="contain"
+            source={getBrandingLogo(theme.mode)}
+            style={styles.startupLogo}
+          />
           <ActivityIndicator
-            accessibilityLabel="Initializing application"
+            accessibilityLabel={`${appBranding.appName} is starting`}
             color={theme.colors.primary}
           />
         </View>

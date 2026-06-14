@@ -1,5 +1,6 @@
 import { darkTheme } from './darkTheme';
 import { lightTheme } from './lightTheme';
+import { brandPalette } from '@/branding';
 
 describe('application themes', () => {
   it('provide complete matching token structures', () => {
@@ -15,6 +16,7 @@ describe('application themes', () => {
     expect(Object.keys(lightTheme.colors).sort()).toEqual(
       [
         'background',
+        'accent',
         'border',
         'divider',
         'error',
@@ -37,6 +39,15 @@ describe('application themes', () => {
         'warning',
       ].sort(),
     );
+  });
+
+  it('maps approved and accessible brand values into semantic theme tokens', () => {
+    expect(lightTheme.colors.primary).toBe(brandPalette.primary);
+    expect(lightTheme.colors.accent).toBe(brandPalette.accent);
+    expect(lightTheme.colors.background).toBe(brandPalette.lightBackground);
+    expect(darkTheme.colors.primary).toBe(brandPalette.primaryOnDark);
+    expect(darkTheme.colors.background).toBe(brandPalette.darkBackground);
+    expect(darkTheme.colors.surface).toBe(brandPalette.darkSurface);
   });
 
   it('provides every required typography, spacing, radius, and sizing token', () => {

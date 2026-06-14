@@ -4,18 +4,36 @@
     "slug": "gbcn-hymn-app",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/branding/gbcn-app-icon.png",
     "userInterfaceStyle": "automatic",
+    "backgroundColor": "#FFF7FB",
+    "primaryColor": "#A73692",
     "android": {
       "package": "org.gbcn.hymnapp",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#A73692",
+        "foregroundImage": "./assets/branding/gbcn-launcher-foreground.png",
+        "backgroundImage": "./assets/branding/gbcn-launcher-background.png"
       }
     },
+    "web": {
+      "favicon": "./assets/branding/gbcn-app-icon.png"
+    },
     "plugins": [
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFF7FB",
+          "image": "./assets/branding/gbcn-logo.png",
+          "dark": {
+            "backgroundColor": "#431E38",
+            "image": "./assets/branding/gbcn-logo.png"
+          },
+          "imageWidth": 200,
+          "resizeMode": "contain"
+        }
+      ]
     ]
   }
 }
