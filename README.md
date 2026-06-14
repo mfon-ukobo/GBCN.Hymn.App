@@ -75,5 +75,8 @@ retrieval by ID or number, category filtering, and atomic catalogue
 replacement. Development builds load `assets/data/hymns.sample.json` only when
 the database has no hymns; it is not the production catalogue.
 
+See [Canonical hymn JSON format](docs/content/hymn-json-format.md) for the
+application-level content contract and validation rules.
+
 During development, open the Expo SQLite inspector by pressing `Shift + M` in
 the Expo CLI terminal and selecting **Open expo-sqlite**.

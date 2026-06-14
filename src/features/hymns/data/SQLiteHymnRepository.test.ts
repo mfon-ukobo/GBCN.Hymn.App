@@ -1,40 +1,43 @@
 import type { DatabaseConnection, DatabaseExecutor } from '@/infrastructure/database';
 
-import type { Hymn, HymnCatalogue } from '../models/Hymn';
+import { HymnSectionType } from '../models/HymnSection';
+import { createValidCatalogueFixture } from './__fixtures__/hymnFixtures';
 import { SQLiteHymnRepository } from './SQLiteHymnRepository';
 
 const hymnRow = {
   id: 'hymn-20',
   number: 20,
   title: 'Test Hymn',
-  category_id: 'category-1',
-  language: 'en',
-  plain_text: 'First verse Second verse',
-  sort_order: 1,
-  created_at: '2026-01-01T00:00:00.000Z',
-  updated_at: '2026-01-01T00:00:00.000Z',
 };
 
-const sections = [
+const categoryRows = [{ category_id: 'praise' }, { category_id: 'prayer' }];
+
+const sectionRows = [
   {
-    id: 'section-2',
-    hymn_id: 'hymn-20',
-    section_type: 'verse',
-    section_number: 2,
-    label: null,
-    content: 'Second verse',
-    sort_order: 2,
-  },
-  {
-    id: 'section-1',
-    hymn_id: 'hymn-20',
-    section_type: 'verse',
+    section_type: HymnSectionType.Verse,
+    section_order: 1,
     section_number: 1,
-    label: null,
-    content: 'First verse',
-    sort_order: 1,
+    label: 'Verse 1',
+    line_order: 1,
+    content: 'First verse line',
   },
-] as const;
+  {
+    section_type: HymnSectionType.Verse,
+    section_order: 1,
+    section_number: 1,
+    label: 'Verse 1',
+    line_order: 2,
+    content: 'Second verse line',
+  },
+  {
+    section_type: HymnSectionType.Chorus,
+    section_order: 2,
+    section_number: null,
+    label: 'Chorus',
+    line_order: 1,
+    content: 'Chorus line',
+  },
+];
 
 function createDatabase(overrides: Partial<DatabaseConnection> = {}): DatabaseConnection {
   const database: DatabaseConnection = {
@@ -51,39 +54,12 @@ function createDatabase(overrides: Partial<DatabaseConnection> = {}): DatabaseCo
   return database;
 }
 
-function createCatalogue(hymnIds = ['new-hymn-1', 'new-hymn-2']): HymnCatalogue {
-  return {
-    categories: [{ id: 'category-1', name: 'Category', sortOrder: 1 }],
-    hymns: hymnIds.map(
-      (id, index): Hymn => ({
-        id,
-        number: index + 1,
-        title: `Hymn ${index + 1}`,
-        categoryId: 'category-1',
-        language: 'en',
-        plainText: `Hymn ${index + 1} text`,
-        sortOrder: index + 1,
-        createdAt: '2026-01-01T00:00:00.000Z',
-        updatedAt: '2026-01-01T00:00:00.000Z',
-        sections: [
-          {
-            id: `${id}-section`,
-            hymnId: id,
-            sectionType: 'verse',
-            sectionNumber: 1,
-            label: null,
-            content: 'Verse',
-            sortOrder: 1,
-          },
-        ],
-      }),
-    ),
-  };
-}
-
 describe('SQLiteHymnRepository', () => {
-  it('retrieves a hymn by id with sections in database order', async () => {
-    const getAllAsync = jest.fn().mockResolvedValue([sections[1], sections[0]]);
+  it('retrieves a canonical hymn with ordered category, section, and lyric data', async () => {
+    const getAllAsync = jest
+      .fn()
+      .mockResolvedValueOnce(categoryRows)
+      .mockResolvedValueOnce(sectionRows);
     const database = createDatabase({
       getFirstAsync: jest.fn().mockResolvedValue(hymnRow),
       getAllAsync,
@@ -92,10 +68,29 @@ describe('SQLiteHymnRepository', () => {
 
     const hymn = await repository.getHymnById('hymn-20');
 
-    expect(hymn?.sections.map((section) => section.id)).toEqual(['section-1', 'section-2']);
-    expect(getAllAsync).toHaveBeenCalledWith(expect.stringContaining('ORDER BY sort_order ASC'), [
-      'hymn-20',
-    ]);
+    expect(hymn).toEqual({
+      ...hymnRow,
+      categoryIds: ['praise', 'prayer'],
+      sections: [
+        {
+          type: HymnSectionType.Verse,
+          order: 1,
+          number: 1,
+          label: 'Verse 1',
+          lines: ['First verse line', 'Second verse line'],
+        },
+        {
+          type: HymnSectionType.Chorus,
+          order: 2,
+          label: 'Chorus',
+          lines: ['Chorus line'],
+        },
+      ],
+    });
+    expect(getAllAsync.mock.calls[0][0]).toContain('ORDER BY category_order ASC');
+    expect(getAllAsync.mock.calls[1][0]).toContain(
+      'ORDER BY hs.section_order ASC, hsl.line_order ASC',
+    );
   });
 
   it('retrieves a hymn by number and returns null for missing hymns', async () => {
@@ -105,7 +100,7 @@ describe('SQLiteHymnRepository', () => {
       .mockResolvedValueOnce(null);
     const database = createDatabase({
       getFirstAsync,
-      getAllAsync: jest.fn().mockResolvedValue([sections[1], sections[0]]),
+      getAllAsync: jest.fn().mockResolvedValue([]),
     });
     const repository = new SQLiteHymnRepository(database);
 
@@ -114,40 +109,49 @@ describe('SQLiteHymnRepository', () => {
     expect(getFirstAsync).toHaveBeenCalledWith(expect.stringContaining('WHERE number = ?'), [20]);
   });
 
-  it('lists and filters hymn summaries in the requested database order', async () => {
-    const getAllAsync = jest.fn().mockResolvedValue([hymnRow]);
+  it('lists and filters canonical hymn summaries with all category ids', async () => {
+    const summaryRows = [
+      { ...hymnRow, category_id: 'praise' },
+      { ...hymnRow, category_id: 'prayer' },
+      { id: 'hymn-21', number: 21, title: 'No Category', category_id: null },
+    ];
+    const getAllAsync = jest.fn().mockResolvedValue(summaryRows);
     const repository = new SQLiteHymnRepository(createDatabase({ getAllAsync }));
 
     await expect(repository.getAllHymns()).resolves.toEqual([
-      {
-        id: 'hymn-20',
-        number: 20,
-        title: 'Test Hymn',
-        categoryId: 'category-1',
-        language: 'en',
-        sortOrder: 1,
-      },
+      { ...hymnRow, categoryIds: ['praise', 'prayer'] },
+      { id: 'hymn-21', number: 21, title: 'No Category', categoryIds: [] },
     ]);
-    await repository.getHymnsByCategory('category-1');
+    await repository.getHymnsByCategory('praise');
 
     expect(getAllAsync).toHaveBeenLastCalledWith(
-      expect.stringContaining('WHERE category_id = ?'),
-      ['category-1'],
+      expect.stringContaining('SELECT hymn_id FROM hymn_categories WHERE category_id = ?'),
+      ['praise'],
     );
-    expect(getAllAsync.mock.calls[0][0]).toContain('ORDER BY sort_order ASC, number ASC');
+    expect(getAllAsync.mock.calls[0][0]).toContain('ORDER BY h.number ASC');
   });
 
-  it('replaces the catalogue in one transaction', async () => {
+  it('replaces the catalogue in one transaction using normalized canonical values', async () => {
     const database = createDatabase();
     const repository = new SQLiteHymnRepository(database);
+    const catalogue = createValidCatalogueFixture();
+    catalogue.hymns[0].title = ' Example Hymn ';
 
-    await repository.replaceCatalogue(createCatalogue());
+    await repository.replaceCatalogue(catalogue);
 
     expect(database.withTransactionAsync).toHaveBeenCalledTimes(1);
-    expect(database.runAsync).toHaveBeenCalledWith('DELETE FROM hymns');
+    expect(database.runAsync).toHaveBeenCalledWith('DELETE FROM hymn_section_lines');
     expect(database.runAsync).toHaveBeenCalledWith(
-      expect.stringContaining('INSERT INTO hymns'),
-      expect.arrayContaining(['new-hymn-1']),
+      'INSERT INTO hymns (id, number, title) VALUES (?, ?, ?)',
+      ['hymn-001', 1, 'Example Hymn'],
+    );
+    expect(database.runAsync).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO hymn_categories'),
+      ['hymn-001', 'praise', 1],
+    );
+    expect(database.runAsync).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO hymn_section_lines'),
+      ['hymn-001', 1, 1, 'First verse line'],
     );
   });
 
@@ -163,12 +167,9 @@ describe('SQLiteHymnRepository', () => {
             if (source === 'DELETE FROM hymns') {
               pendingHymnIds.length = 0;
             }
-            if (source.includes('INSERT INTO hymns')) {
-              const id = params?.[0] as string;
-              pendingHymnIds.push(id);
-              if (id === 'new-hymn-2') {
-                throw new Error('insert failed');
-              }
+            if (source.startsWith('INSERT INTO hymns')) {
+              pendingHymnIds.push(params?.[0] as string);
+              throw new Error('insert failed');
             }
             return { changes: 1, lastInsertRowId: 0 };
           }),
@@ -180,18 +181,24 @@ describe('SQLiteHymnRepository', () => {
     );
     const repository = new SQLiteHymnRepository(database);
 
-    await expect(repository.replaceCatalogue(createCatalogue())).rejects.toThrow('insert failed');
+    await expect(repository.replaceCatalogue(createValidCatalogueFixture())).rejects.toThrow(
+      'insert failed',
+    );
 
     expect(hymnIds).toEqual(['existing-hymn']);
   });
 
   it('rejects invalid section types before deleting existing data', async () => {
-    const catalogue = createCatalogue();
-    catalogue.hymns[0].sections[0].sectionType = 'invalid' as 'verse';
+    const catalogue = createValidCatalogueFixture() as unknown as {
+      hymns: { sections: { type: string }[] }[];
+    };
+    catalogue.hymns[0].sections[0].type = 'invalid';
     const database = createDatabase();
     const repository = new SQLiteHymnRepository(database);
 
-    await expect(repository.replaceCatalogue(catalogue)).rejects.toThrow('invalid sectionType');
+    await expect(repository.replaceCatalogue(catalogue)).rejects.toThrow(
+      'catalogue.hymns[0].sections[0].type',
+    );
 
     expect(database.withTransactionAsync).not.toHaveBeenCalled();
   });

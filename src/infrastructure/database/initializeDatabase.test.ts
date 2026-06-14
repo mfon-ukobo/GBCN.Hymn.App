@@ -26,7 +26,7 @@ describe('initializeDatabase', () => {
     jest.restoreAllMocks();
   });
 
-  it('creates the schema, records the initial migration, and initializes once per session', async () => {
+  it('creates the canonical schema, records migrations, and initializes once per session', async () => {
     const database = createDatabase();
     const openDatabase = jest.fn().mockResolvedValue(database);
     const initialize = createDatabaseInitializer({ openDatabase });
@@ -37,22 +37,35 @@ describe('initializeDatabase', () => {
     expect(first).toBe(database);
     expect(second).toBe(database);
     expect(openDatabase).toHaveBeenCalledTimes(1);
-    expect(database.withTransactionAsync).toHaveBeenCalledTimes(1);
+    expect(database.withTransactionAsync).toHaveBeenCalledTimes(2);
     expect(database.execAsync).toHaveBeenCalledWith('PRAGMA foreign_keys = ON');
     expect(database.execAsync).toHaveBeenCalledWith(expect.stringContaining('CREATE TABLE categories'));
     expect(database.execAsync).toHaveBeenCalledWith(expect.stringContaining('ON DELETE CASCADE'));
     expect(database.execAsync).toHaveBeenCalledWith(
-      expect.stringContaining('CREATE INDEX idx_hymns_sort_order'),
+      expect.stringContaining('CREATE TABLE hymn_categories'),
+    );
+    expect(database.execAsync).toHaveBeenCalledWith(
+      expect.stringContaining('CREATE TABLE hymn_section_lines'),
+    );
+    expect(database.execAsync).toHaveBeenCalledWith(
+      expect.stringContaining("CHECK (section_type != 'verse' OR section_number IS NOT NULL)"),
+    );
+    expect(database.execAsync).toHaveBeenCalledWith(
+      expect.stringContaining('DROP TABLE hymn_sections'),
     );
     expect(database.runAsync).toHaveBeenCalledWith(
       expect.stringContaining('INSERT INTO schema_migrations'),
       expect.arrayContaining([1, '001_create_hymn_storage']),
     );
+    expect(database.runAsync).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO schema_migrations'),
+      expect.arrayContaining([2, '002_create_canonical_hymn_storage']),
+    );
   });
 
   it('does not execute completed migrations again', async () => {
     const database = createDatabase();
-    database.getAllAsync.mockResolvedValue([{ version: 1 }]);
+    database.getAllAsync.mockResolvedValue([{ version: 1 }, { version: 2 }]);
     const initialize = createDatabaseInitializer({
       openDatabase: jest.fn().mockResolvedValue(database),
     });
@@ -61,6 +74,28 @@ describe('initializeDatabase', () => {
 
     expect(database.withTransactionAsync).not.toHaveBeenCalled();
     expect(database.runAsync).not.toHaveBeenCalled();
+  });
+
+  it('resets the old hymn catalogue while upgrading schema version 1', async () => {
+    const database = createDatabase();
+    database.getAllAsync.mockResolvedValue([{ version: 1 }]);
+    const initialize = createDatabaseInitializer({
+      openDatabase: jest.fn().mockResolvedValue(database),
+    });
+
+    await initialize();
+
+    expect(database.withTransactionAsync).toHaveBeenCalledTimes(1);
+    expect(database.execAsync).toHaveBeenCalledWith(
+      expect.stringContaining('DROP TABLE hymn_sections'),
+    );
+    expect(database.execAsync).toHaveBeenCalledWith(
+      expect.stringContaining('CREATE TABLE hymn_section_lines'),
+    );
+    expect(database.runAsync).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO schema_migrations'),
+      expect.arrayContaining([2, '002_create_canonical_hymn_storage']),
+    );
   });
 
   it('rejects and retains a failed initialization result without recreating the database', async () => {

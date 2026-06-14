@@ -1,4 +1,4 @@
-import type { Hymn, HymnCatalogue, HymnSummary } from '../models/Hymn';
+import type { Hymn, HymnSummary } from '../models/Hymn';
 import type { HymnCategory } from '../models/HymnCategory';
 
 export interface HymnRepository {
@@ -7,5 +7,5 @@ export interface HymnRepository {
   getHymnByNumber(number: number): Promise<Hymn | null>;
   getHymnsByCategory(categoryId: string): Promise<HymnSummary[]>;
   getCategories(): Promise<HymnCategory[]>;
-  replaceCatalogue(catalogue: HymnCatalogue): Promise<void>;
+  replaceCatalogue(catalogue: unknown): Promise<void>;
 }

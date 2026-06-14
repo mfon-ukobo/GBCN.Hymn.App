@@ -1,21 +1,15 @@
 import type { HymnCategory } from './HymnCategory';
 import type { HymnSection } from './HymnSection';
 
-export interface HymnSummary {
+export interface Hymn {
   id: string;
   number: number;
   title: string;
-  categoryId: string | null;
-  language: string;
-  sortOrder: number;
-}
-
-export interface Hymn extends HymnSummary {
-  plainText: string;
-  createdAt: string;
-  updatedAt: string;
+  categoryIds: string[];
   sections: HymnSection[];
 }
+
+export type HymnSummary = Pick<Hymn, 'id' | 'number' | 'title' | 'categoryIds'>;
 
 export interface HymnCatalogue {
   categories: HymnCategory[];
