@@ -3,16 +3,26 @@ import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { PreferencesProvider, usePreferences } from '@/features/preferences';
 import { initializeHymnStorage } from '@/infrastructure/database';
 import { AppNavigator } from '@/navigation';
 
 export default function App() {
+  return (
+    <PreferencesProvider>
+      <AppContent />
+    </PreferencesProvider>
+  );
+}
+
+function AppContent() {
   const [initializationError, setInitializationError] = useState<Error | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  const [isDatabaseReady, setIsDatabaseReady] = useState(false);
+  const { isHydrated } = usePreferences();
 
   useEffect(() => {
     initializeHymnStorage()
-      .then(() => setIsReady(true))
+      .then(() => setIsDatabaseReady(true))
       .catch((error: unknown) => {
         setInitializationError(
           error instanceof Error ? error : new Error('Unknown database initialization error.'),
@@ -31,10 +41,10 @@ export default function App() {
     );
   }
 
-  if (!isReady) {
+  if (!isDatabaseReady || !isHydrated) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator accessibilityLabel="Initializing local hymn storage" />
+        <ActivityIndicator accessibilityLabel="Initializing application" />
       </View>
     );
   }
