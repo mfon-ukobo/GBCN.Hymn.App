@@ -127,6 +127,38 @@ import { Hymn } from '@/features/hymns';
 The root Expo entry file is outside `src/` and may use a relative import.
 TypeScript, Metro, and Jest are configured to resolve the alias.
 
+## Navigation
+
+`src/navigation/AppNavigator.tsx` owns the application's single
+`NavigationContainer`. Do not nest another navigation container in a navigator,
+screen, or feature.
+
+The root native stack owns application-level routes and default platform back
+behaviour. The bottom-tab navigator owns the four persistent main sections:
+
+```text
+RootStack
+├── MainTabs
+│   ├── HymnsTab
+│   ├── SearchTab
+│   ├── FavouritesTab
+│   └── SettingsTab
+├── Categories
+├── CategoryHymns
+└── HymnDetail
+```
+
+Register main-section routes in `MainTabNavigator.tsx` and application-level
+routes in `RootStackNavigator.tsx`. Define every route and its parameters in
+`types.ts`. Route parameters must contain stable, serializable identifiers
+rather than complete domain objects, database entities, large collections,
+functions, or React components.
+
+Navigation imports feature screens only through each feature's public
+`index.ts`. Features must expose screens needed by navigation through that
+public API instead of allowing deep imports into their internal `screens`
+directories.
+
 ## Naming Conventions
 
 - Directories use lowercase names, such as `features`, `favourites`, and

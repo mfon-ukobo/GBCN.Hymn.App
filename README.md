@@ -2,9 +2,9 @@
 
 GBCN Hymn App is an Android-first React Native application built with Expo and
 TypeScript. This project currently provides only the application foundation and
-a minimal placeholder screen.
+placeholder feature screens.
 
-Hymn features, navigation, storage, preferences, themes, and final branding are
+Production hymn features, storage, preferences, themes, and final branding are
 not implemented yet.
 
 ## Prerequisites
@@ -53,3 +53,14 @@ is located under `src/`, and source imports may use the `@/` alias.
 Create new product features under `src/features/`. See
 [Project structure](docs/architecture/project-structure.md) for module
 responsibilities, dependency rules, and naming conventions.
+
+## Navigation
+
+The application uses React Navigation with a native root stack and bottom tabs.
+The main tabs are Hymns, Search, Favourites, and Settings. Root stack routes are
+`MainTabs`, `Categories`, `CategoryHymns`, and `HymnDetail`.
+
+Navigation configuration and route types are located in `src/navigation/`.
+Current feature screens are placeholders for verifying the navigation
+foundation. See [Project structure](docs/architecture/project-structure.md#navigation)
+for route registration and parameter rules.
