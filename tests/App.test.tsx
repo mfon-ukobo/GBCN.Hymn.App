@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 
-import App from '../src/App';
+import App from '@/app';
 
 jest.mock('react-native-safe-area-context', () =>
   jest.requireActual<{ default: object }>('react-native-safe-area-context/jest/mock').default,

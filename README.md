@@ -44,3 +44,12 @@ npm run lint
 npm test -- --runInBand
 npx expo-doctor
 ```
+
+## Architecture
+
+The application uses a feature-first source structure. Application source code
+is located under `src/`, and source imports may use the `@/` alias.
+
+Create new product features under `src/features/`. See
+[Project structure](docs/architecture/project-structure.md) for module
+responsibilities, dependency rules, and naming conventions.
