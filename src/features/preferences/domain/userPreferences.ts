@@ -1,4 +1,4 @@
-export type ThemeMode = 'light' | 'dark';
+import type { ThemeMode } from '@/theme';
 
 export type HymnTextSize = 'small' | 'medium' | 'large';
 

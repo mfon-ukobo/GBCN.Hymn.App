@@ -15,9 +15,9 @@ import {
 import {
   DEFAULT_USER_PREFERENCES,
   type HymnTextSize,
-  type ThemeMode,
   type UserPreferences,
 } from '../domain/userPreferences';
+import type { ThemeMode } from '@/theme';
 
 export interface PreferencesContextValue {
   preferences: UserPreferences;

@@ -1,13 +1,23 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { BackHandler } from 'react-native';
 
 import App from '@/app';
+import {
+  USER_PREFERENCES_SCHEMA_VERSION,
+  USER_PREFERENCES_STORAGE_KEY,
+} from '@/features/preferences/domain/userPreferences';
+import { darkTheme } from '@/theme';
 
 jest.mock('@/infrastructure/database', () => ({
   initializeHymnStorage: jest.fn().mockResolvedValue(undefined),
 }));
 
 describe('AppNavigator', () => {
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -22,6 +32,25 @@ describe('AppNavigator', () => {
     expect(screen.getByRole('button', { name: /^Search, tab/ })).toBeVisible();
     expect(screen.getByRole('button', { name: /^Favourites, tab/ })).toBeVisible();
     expect(screen.getByRole('button', { name: /^Settings, tab/ })).toBeVisible();
+  });
+
+  it('applies a persisted dark theme to the existing application shell', async () => {
+    await AsyncStorage.setItem(
+      USER_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        schemaVersion: USER_PREFERENCES_SCHEMA_VERSION,
+        preferences: {
+          themeMode: 'dark',
+          hymnTextSize: 'medium',
+        },
+      }),
+    );
+
+    await render(<App />);
+
+    expect(await screen.findByRole('header', { name: 'Hymns' })).toHaveStyle({
+      color: darkTheme.colors.textPrimary,
+    });
   });
 
   it('switches between main tabs', async () => {

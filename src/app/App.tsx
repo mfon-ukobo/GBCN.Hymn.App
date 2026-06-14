@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react';
-import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { PreferencesProvider, usePreferences } from '@/features/preferences';
 import { initializeHymnStorage } from '@/infrastructure/database';
 import { AppNavigator } from '@/navigation';
+import { ThemedStatusBar, useAppTheme, useThemedStyles } from '@/theme';
+
+import { AppThemeProvider } from './providers/AppThemeProvider';
 
 export default function App() {
   return (
     <PreferencesProvider>
-      <AppContent />
+      <AppThemeProvider>
+        <AppContent />
+      </AppThemeProvider>
     </PreferencesProvider>
   );
 }
@@ -19,6 +23,32 @@ function AppContent() {
   const [initializationError, setInitializationError] = useState<Error | null>(null);
   const [isDatabaseReady, setIsDatabaseReady] = useState(false);
   const { isHydrated } = usePreferences();
+  const { theme } = useAppTheme();
+  const styles = useThemedStyles((activeTheme) =>
+    StyleSheet.create({
+      root: {
+        flex: 1,
+        backgroundColor: activeTheme.colors.statusBar,
+      },
+      centered: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: activeTheme.spacing.lg,
+        backgroundColor: activeTheme.colors.background,
+      },
+      errorHeading: {
+        marginBottom: activeTheme.spacing.sm,
+        color: activeTheme.colors.error,
+        textAlign: 'center',
+        ...activeTheme.typography.bodyLarge,
+      },
+      errorDetail: {
+        color: activeTheme.colors.textSecondary,
+        ...activeTheme.typography.bodySmall,
+      },
+    }),
+  );
 
   useEffect(() => {
     initializeHymnStorage()
@@ -30,44 +60,28 @@ function AppContent() {
       });
   }, []);
 
-  if (initializationError) {
-    return (
-      <View style={styles.centered}>
-        <Text accessibilityRole="alert" style={styles.errorHeading}>
-          Local hymn storage could not be initialized.
-        </Text>
-        {__DEV__ ? <Text>{initializationError.message}</Text> : null}
-      </View>
-    );
-  }
-
-  if (!isDatabaseReady || !isHydrated) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator accessibilityLabel="Initializing application" />
-      </View>
-    );
-  }
-
   return (
-    <SafeAreaProvider>
-      <StatusBar style="auto" />
-      <AppNavigator />
-    </SafeAreaProvider>
+    <View style={styles.root}>
+      <ThemedStatusBar />
+      {initializationError ? (
+        <View style={styles.centered}>
+          <Text accessibilityRole="alert" style={styles.errorHeading}>
+            Local hymn storage could not be initialized.
+          </Text>
+          {__DEV__ ? <Text style={styles.errorDetail}>{initializationError.message}</Text> : null}
+        </View>
+      ) : !isDatabaseReady || !isHydrated ? (
+        <View style={styles.centered}>
+          <ActivityIndicator
+            accessibilityLabel="Initializing application"
+            color={theme.colors.primary}
+          />
+        </View>
+      ) : (
+        <SafeAreaProvider>
+          <AppNavigator />
+        </SafeAreaProvider>
+      )}
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  errorHeading: {
-    marginBottom: 8,
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-});
