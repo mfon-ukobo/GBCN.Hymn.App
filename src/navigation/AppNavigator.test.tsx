@@ -3,6 +3,10 @@ import { BackHandler } from 'react-native';
 
 import App from '@/app';
 
+jest.mock('@/infrastructure/database', () => ({
+  initializeHymnStorage: jest.fn().mockResolvedValue(undefined),
+}));
+
 describe('AppNavigator', () => {
   afterEach(() => {
     jest.restoreAllMocks();

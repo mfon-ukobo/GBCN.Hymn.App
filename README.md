@@ -4,8 +4,8 @@ GBCN Hymn App is an Android-first React Native application built with Expo and
 TypeScript. This project currently provides only the application foundation and
 placeholder feature screens.
 
-Production hymn features, storage, preferences, themes, and final branding are
-not implemented yet.
+Production hymn content, preferences, themes, and final branding are not
+implemented yet.
 
 ## Prerequisites
 
@@ -64,3 +64,19 @@ Navigation configuration and route types are located in `src/navigation/`.
 Current feature screens are placeholders for verifying the navigation
 foundation. See [Project structure](docs/architecture/project-structure.md#navigation)
 for route registration and parameter rules.
+
+## Local Hymn Storage
+
+The Android application uses `expo-sqlite` for persistent offline hymn storage.
+Startup enables SQLite foreign keys, applies pending versioned migrations, and
+then renders the application. Initialization errors are surfaced and never
+trigger destructive database recreation.
+
+Feature code accesses stored content through the typed `HymnRepository`
+interface. `SQLiteHymnRepository` supports ordered hymn/category reads,
+retrieval by ID or number, category filtering, and atomic catalogue
+replacement. Development builds load `assets/data/hymns.sample.json` only when
+the database has no hymns; it is not the production catalogue.
+
+During development, open the Expo SQLite inspector by pressing `Shift + M` in
+the Expo CLI terminal and selecting **Open expo-sqlite**.

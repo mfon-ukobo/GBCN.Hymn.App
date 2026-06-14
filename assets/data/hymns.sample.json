@@ -1,0 +1,109 @@
+{
+  "categories": [
+    {
+      "id": "sample-praise",
+      "name": "Praise",
+      "sortOrder": 1
+    },
+    {
+      "id": "sample-prayer",
+      "name": "Prayer",
+      "sortOrder": 2
+    }
+  ],
+  "hymns": [
+    {
+      "id": "sample-hymn-101",
+      "number": 101,
+      "title": "Morning Praise",
+      "categoryId": "sample-praise",
+      "language": "en",
+      "plainText": "Morning light is rising. We lift our song together. Praise forever.",
+      "sortOrder": 1,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "sections": [
+        {
+          "id": "sample-section-101-1",
+          "hymnId": "sample-hymn-101",
+          "sectionType": "verse",
+          "sectionNumber": 1,
+          "label": null,
+          "content": "Morning light is rising.",
+          "sortOrder": 1
+        },
+        {
+          "id": "sample-section-101-2",
+          "hymnId": "sample-hymn-101",
+          "sectionType": "verse",
+          "sectionNumber": 2,
+          "label": null,
+          "content": "We lift our song together.",
+          "sortOrder": 2
+        },
+        {
+          "id": "sample-section-101-3",
+          "hymnId": "sample-hymn-101",
+          "sectionType": "chorus",
+          "sectionNumber": null,
+          "label": "Chorus",
+          "content": "Praise forever.",
+          "sortOrder": 3
+        }
+      ]
+    },
+    {
+      "id": "sample-hymn-205",
+      "number": 205,
+      "title": "A Quiet Prayer",
+      "categoryId": "sample-prayer",
+      "language": "en",
+      "plainText": "In the quiet, hear our prayer.",
+      "sortOrder": 2,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "sections": [
+        {
+          "id": "sample-section-205-1",
+          "hymnId": "sample-hymn-205",
+          "sectionType": "verse",
+          "sectionNumber": 1,
+          "label": null,
+          "content": "In the quiet, hear our prayer.",
+          "sortOrder": 1
+        }
+      ]
+    },
+    {
+      "id": "sample-hymn-12",
+      "number": 12,
+      "title": "Rejoice Today",
+      "categoryId": "sample-praise",
+      "language": "en",
+      "plainText": "Rejoice today. Joy returns again.",
+      "sortOrder": 3,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "sections": [
+        {
+          "id": "sample-section-12-1",
+          "hymnId": "sample-hymn-12",
+          "sectionType": "verse",
+          "sectionNumber": 1,
+          "label": null,
+          "content": "Rejoice today.",
+          "sortOrder": 1
+        },
+        {
+          "id": "sample-section-12-2",
+          "hymnId": "sample-hymn-12",
+          "sectionType": "refrain",
+          "sectionNumber": null,
+          "label": "Refrain",
+          "content": "Joy returns again.",
+          "sortOrder": 2
+        }
+      ]
+    }
+  ]
+}
