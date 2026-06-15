@@ -3,6 +3,7 @@ import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { appBranding, getBrandingLogo } from '@/branding';
+import { FavouritesProvider, useFavourites } from '@/features/favourites';
 import { PreferencesProvider, usePreferences } from '@/features/preferences';
 import { HymnStorageProvider } from '@/infrastructure/database';
 import { AppNavigator } from '@/navigation';
@@ -13,15 +14,18 @@ import { AppThemeProvider } from './providers/AppThemeProvider';
 export default function App() {
   return (
     <PreferencesProvider>
-      <AppThemeProvider>
-        <AppContent />
-      </AppThemeProvider>
+      <FavouritesProvider>
+        <AppThemeProvider>
+          <AppContent />
+        </AppThemeProvider>
+      </FavouritesProvider>
     </PreferencesProvider>
   );
 }
 
 function AppContent() {
-  const { isHydrated } = usePreferences();
+  const { isHydrated: areFavouritesHydrated } = useFavourites();
+  const { isHydrated: arePreferencesHydrated } = usePreferences();
   const styles = useThemedStyles((activeTheme) =>
     StyleSheet.create({
       root: {
@@ -34,7 +38,7 @@ function AppContent() {
   return (
     <View style={styles.root}>
       <ThemedStatusBar />
-      {!isHydrated ? (
+      {!areFavouritesHydrated || !arePreferencesHydrated ? (
         <StartupScreen />
       ) : (
         <HymnStorageErrorBoundary>

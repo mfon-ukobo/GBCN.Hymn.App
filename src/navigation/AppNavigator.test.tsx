@@ -124,6 +124,45 @@ describe('AppNavigator', () => {
     expect(mockRepository.getHymnById).toHaveBeenCalledWith('gbcn-023');
   });
 
+  it('persists a favourite and renders it in the Favourites tab', async () => {
+    const app = await render(<App />);
+
+    await fireEvent.press(
+      await screen.findByRole('button', {
+        name: "Hymn 23, JÉSÙ, BÙKÚN WA K'A TÓ LỌ",
+      }),
+    );
+    await fireEvent.press(await screen.findByLabelText('Add Hymn 23 to favourites'));
+
+    expect(await screen.findByLabelText('Remove Hymn 23 from favourites')).toBeVisible();
+
+    await act(() => {
+      app.unmount();
+    });
+    await render(<App />);
+    await fireEvent.press(await screen.findByRole('button', { name: /^Favourites, tab/ }));
+
+    expect(await screen.findByRole('header', { name: 'Favourites' })).toBeVisible();
+    expect(await screen.findByText('1 favourite hymn')).toBeVisible();
+    await fireEvent.press(
+      await screen.findByRole('button', {
+        name: "Hymn 23, JÉSÙ, BÙKÚN WA K'A TÓ LỌ",
+      }),
+    );
+    await fireEvent.press(await screen.findByLabelText('Remove Hymn 23 from favourites'));
+
+    expect(await screen.findByLabelText('Add Hymn 23 to favourites')).toBeVisible();
+  });
+
+  it('shows an empty state when there are no favourite hymns', async () => {
+    await render(<App />);
+
+    await fireEvent.press(await screen.findByRole('button', { name: /^Favourites, tab/ }));
+
+    expect(await screen.findByText('You have no favourite hymns yet.')).toBeVisible();
+    expect(screen.getByText('Open a hymn and tap the heart to save it here.')).toBeVisible();
+  });
+
   it('searches the offline catalogue and opens a result', async () => {
     await render(<App />);
 
