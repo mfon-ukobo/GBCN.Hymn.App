@@ -33,6 +33,8 @@
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
+    "android:debug:build": "cd android && gradlew.bat assembleDebug",
+    "android:release:build": "cd android && gradlew.bat assembleRelease",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "test": "jest"
