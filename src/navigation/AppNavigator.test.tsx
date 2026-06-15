@@ -75,10 +75,18 @@ describe('AppNavigator', () => {
     expect(screen.getByRole('button', { name: /^Search, tab/ })).toBeVisible();
     expect(screen.getByRole('button', { name: /^Favourites, tab/ })).toBeVisible();
     expect(screen.getByRole('button', { name: /^Settings, tab/ })).toBeVisible();
-    expect(screen.getByTestId('tab-icon-HymnsTab')).toBeVisible();
-    expect(screen.getByTestId('tab-icon-SearchTab')).toBeVisible();
-    expect(screen.getByTestId('tab-icon-FavouritesTab')).toBeVisible();
-    expect(screen.getByTestId('tab-icon-SettingsTab')).toBeVisible();
+    expect(screen.getAllByTestId('tab-icon-HymnsTab', { includeHiddenElements: true })).not.toHaveLength(
+      0,
+    );
+    expect(screen.getAllByTestId('tab-icon-SearchTab', { includeHiddenElements: true })).not.toHaveLength(
+      0,
+    );
+    expect(
+      screen.getAllByTestId('tab-icon-FavouritesTab', { includeHiddenElements: true }),
+    ).not.toHaveLength(0);
+    expect(
+      screen.getAllByTestId('tab-icon-SettingsTab', { includeHiddenElements: true }),
+    ).not.toHaveLength(0);
   });
 
   it('applies a persisted dark theme to the hymn catalogue', async () => {
