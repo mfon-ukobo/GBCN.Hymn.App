@@ -1,4 +1,3 @@
-import type { HymnCategory } from './HymnCategory';
 import type { HymnSection } from './HymnSection';
 
 export interface Hymn {
@@ -10,8 +9,3 @@ export interface Hymn {
 }
 
 export type HymnSummary = Pick<Hymn, 'id' | 'number' | 'title' | 'categoryIds'>;
-
-export interface HymnCatalogue {
-  categories: HymnCategory[];
-  hymns: Hymn[];
-}

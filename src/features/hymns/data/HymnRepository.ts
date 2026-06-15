@@ -7,5 +7,5 @@ export interface HymnRepository {
   getHymnByNumber(number: number): Promise<Hymn | null>;
   getHymnsByCategory(categoryId: string): Promise<HymnSummary[]>;
   getCategories(): Promise<HymnCategory[]>;
-  replaceCatalogue(catalogue: unknown): Promise<void>;
+  searchHymns(query: string): Promise<HymnSummary[]>;
 }

@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { Component, type ErrorInfo, type PropsWithChildren, Suspense } from 'react';
 import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { appBranding, getBrandingLogo } from '@/branding';
 import { PreferencesProvider, usePreferences } from '@/features/preferences';
-import { initializeHymnStorage } from '@/infrastructure/database';
+import { HymnStorageProvider } from '@/infrastructure/database';
 import { AppNavigator } from '@/navigation';
 import { ThemedStatusBar, useAppTheme, useThemedStyles } from '@/theme';
 
@@ -21,16 +21,40 @@ export default function App() {
 }
 
 function AppContent() {
-  const [initializationError, setInitializationError] = useState<Error | null>(null);
-  const [isDatabaseReady, setIsDatabaseReady] = useState(false);
   const { isHydrated } = usePreferences();
-  const { theme } = useAppTheme();
   const styles = useThemedStyles((activeTheme) =>
     StyleSheet.create({
       root: {
         flex: 1,
         backgroundColor: activeTheme.colors.statusBar,
       },
+    }),
+  );
+
+  return (
+    <View style={styles.root}>
+      <ThemedStatusBar />
+      {!isHydrated ? (
+        <StartupScreen />
+      ) : (
+        <HymnStorageErrorBoundary>
+          <Suspense fallback={<StartupScreen />}>
+            <HymnStorageProvider>
+              <SafeAreaProvider>
+                <AppNavigator />
+              </SafeAreaProvider>
+            </HymnStorageProvider>
+          </Suspense>
+        </HymnStorageErrorBoundary>
+      )}
+    </View>
+  );
+}
+
+function StartupScreen() {
+  const { theme } = useAppTheme();
+  const styles = useThemedStyles((activeTheme) =>
+    StyleSheet.create({
       centered: {
         flex: 1,
         alignItems: 'center',
@@ -43,57 +67,82 @@ function AppContent() {
         height: 144,
         marginBottom: activeTheme.spacing.lg,
       },
-      errorHeading: {
-        marginBottom: activeTheme.spacing.sm,
-        color: activeTheme.colors.error,
-        textAlign: 'center',
-        ...activeTheme.typography.bodyLarge,
+    }),
+  );
+
+  return (
+    <View style={styles.centered}>
+      <Image
+        accessibilityLabel={`${appBranding.appName} logo`}
+        resizeMode="contain"
+        source={getBrandingLogo(theme.mode)}
+        style={styles.startupLogo}
+      />
+      <ActivityIndicator
+        accessibilityLabel={`${appBranding.appName} is starting`}
+        color={theme.colors.primary}
+      />
+    </View>
+  );
+}
+
+interface HymnStorageErrorBoundaryState {
+  error: Error | null;
+}
+
+class HymnStorageErrorBoundary extends Component<
+  PropsWithChildren,
+  HymnStorageErrorBoundaryState
+> {
+  state: HymnStorageErrorBoundaryState = { error: null };
+
+  static getDerivedStateFromError(error: unknown): HymnStorageErrorBoundaryState {
+    return {
+      error: error instanceof Error ? error : new Error('Unknown database initialization error.'),
+    };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    if (__DEV__) {
+      console.error('Hymn database initialization failed.', error, info);
+    }
+  }
+
+  render() {
+    return this.state.error ? <StorageErrorScreen error={this.state.error} /> : this.props.children;
+  }
+}
+
+function StorageErrorScreen({ error }: { error: Error }) {
+  const styles = useThemedStyles((theme) =>
+    StyleSheet.create({
+      centered: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: theme.spacing.lg,
+        backgroundColor: theme.colors.background,
       },
-      errorDetail: {
-        color: activeTheme.colors.textSecondary,
-        ...activeTheme.typography.bodySmall,
+      heading: {
+        marginBottom: theme.spacing.sm,
+        color: theme.colors.error,
+        textAlign: 'center',
+        ...theme.typography.bodyLarge,
+      },
+      detail: {
+        color: theme.colors.textSecondary,
+        textAlign: 'center',
+        ...theme.typography.bodySmall,
       },
     }),
   );
 
-  useEffect(() => {
-    initializeHymnStorage()
-      .then(() => setIsDatabaseReady(true))
-      .catch((error: unknown) => {
-        setInitializationError(
-          error instanceof Error ? error : new Error('Unknown database initialization error.'),
-        );
-      });
-  }, []);
-
   return (
-    <View style={styles.root}>
-      <ThemedStatusBar />
-      {initializationError ? (
-        <View style={styles.centered}>
-          <Text accessibilityRole="alert" style={styles.errorHeading}>
-            Local hymn storage could not be initialized.
-          </Text>
-          {__DEV__ ? <Text style={styles.errorDetail}>{initializationError.message}</Text> : null}
-        </View>
-      ) : !isDatabaseReady || !isHydrated ? (
-        <View style={styles.centered}>
-          <Image
-            accessibilityLabel={`${appBranding.appName} logo`}
-            resizeMode="contain"
-            source={getBrandingLogo(theme.mode)}
-            style={styles.startupLogo}
-          />
-          <ActivityIndicator
-            accessibilityLabel={`${appBranding.appName} is starting`}
-            color={theme.colors.primary}
-          />
-        </View>
-      ) : (
-        <SafeAreaProvider>
-          <AppNavigator />
-        </SafeAreaProvider>
-      )}
+    <View style={styles.centered}>
+      <Text accessibilityRole="alert" style={styles.heading}>
+        Local hymn storage could not be initialized.
+      </Text>
+      {__DEV__ ? <Text style={styles.detail}>{error.message}</Text> : null}
     </View>
   );
 }

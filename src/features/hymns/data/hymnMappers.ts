@@ -28,7 +28,7 @@ export interface HymnSectionLineRow {
 export interface HymnCategoryRow {
   id: string;
   name: string;
-  sort_order: number | null;
+  sort_order: number;
 }
 
 export function mapHymnSummaries(rows: HymnSummaryRow[]): HymnSummary[] {
@@ -85,6 +85,6 @@ export function mapHymnCategory(row: HymnCategoryRow): HymnCategory {
   return {
     id: row.id,
     name: row.name,
-    ...(row.sort_order === null ? {} : { sortOrder: row.sort_order }),
+    sortOrder: row.sort_order,
   };
 }

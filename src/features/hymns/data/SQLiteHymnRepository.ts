@@ -1,4 +1,4 @@
-import type { DatabaseConnection, DatabaseExecutor } from '@/infrastructure/database';
+import type { DatabaseConnection } from '@/infrastructure/database';
 
 import type { HymnRepository } from './HymnRepository';
 import {
@@ -11,7 +11,7 @@ import {
   mapHymnCategory,
   mapHymnSummaries,
 } from './hymnMappers';
-import { validateCatalogue } from './validateCatalogue';
+import { createFtsPrefixQuery, normalizeSearchQuery } from './normalizeSearchQuery';
 import type { Hymn, HymnSummary } from '../models/Hymn';
 import type { HymnCategory } from '../models/HymnCategory';
 
@@ -28,7 +28,7 @@ export class SQLiteHymnRepository implements HymnRepository {
 
   async getAllHymns(): Promise<HymnSummary[]> {
     const rows = await this.database.getAllAsync<HymnSummaryRow>(
-      `${HYMN_SUMMARY_SELECT} ORDER BY h.number ASC, hc.category_order ASC`,
+      `${HYMN_SUMMARY_SELECT} ORDER BY h.number ASC, hc.category_id ASC`,
     );
     return mapHymnSummaries(rows);
   }
@@ -49,7 +49,7 @@ export class SQLiteHymnRepository implements HymnRepository {
     const rows = await this.database.getAllAsync<HymnSummaryRow>(
       `${HYMN_SUMMARY_SELECT}
        WHERE h.id IN (SELECT hymn_id FROM hymn_categories WHERE category_id = ?)
-       ORDER BY h.number ASC, hc.category_order ASC`,
+       ORDER BY h.number ASC, hc.category_id ASC`,
       [categoryId],
     );
     return mapHymnSummaries(rows);
@@ -57,37 +57,48 @@ export class SQLiteHymnRepository implements HymnRepository {
 
   async getCategories(): Promise<HymnCategory[]> {
     const rows = await this.database.getAllAsync<HymnCategoryRow>(
-      `SELECT id, name, sort_order
+      `SELECT id, name, position AS sort_order
        FROM categories
-       ORDER BY sort_order IS NULL ASC, sort_order ASC, name ASC`,
+       ORDER BY position ASC, name ASC`,
     );
     return rows.map(mapHymnCategory);
   }
 
-  async replaceCatalogue(catalogue: unknown): Promise<void> {
-    const validatedCatalogue = validateCatalogue(catalogue);
+  async searchHymns(query: string): Promise<HymnSummary[]> {
+    const normalizedQuery = normalizeSearchQuery(query);
+    if (normalizedQuery.length === 0) {
+      return [];
+    }
 
-    await this.database.withTransactionAsync(async (transaction) => {
-      await transaction.runAsync('DELETE FROM hymn_section_lines');
-      await transaction.runAsync('DELETE FROM hymn_sections');
-      await transaction.runAsync('DELETE FROM hymn_categories');
-      await transaction.runAsync('DELETE FROM hymns');
-      await transaction.runAsync('DELETE FROM categories');
+    if (/^\d+$/.test(normalizedQuery)) {
+      const rows = await this.database.getAllAsync<HymnSummaryRow>(
+        `${HYMN_SUMMARY_SELECT}
+         WHERE h.number = ?
+         ORDER BY hc.category_id ASC`,
+        [Number(normalizedQuery)],
+      );
+      return mapHymnSummaries(rows);
+    }
 
-      for (const category of validatedCatalogue.categories) {
-        await transaction.runAsync(
-          'INSERT INTO categories (id, name, sort_order) VALUES (?, ?, ?)',
-          [category.id, category.name, category.sortOrder ?? null],
-        );
-      }
-
-      for (const hymn of validatedCatalogue.hymns) {
-        await this.insertHymn(transaction, hymn);
-      }
-    });
+    const ftsQuery = createFtsPrefixQuery(normalizedQuery);
+    const rows = await this.database.getAllAsync<HymnSummaryRow>(
+      `${HYMN_SUMMARY_SELECT}
+       INNER JOIN hymn_search hs ON hs.hymn_id = h.id
+       WHERE hymn_search MATCH ?
+       ORDER BY
+         CASE
+           WHEN h.title_search = ? THEN 0
+           WHEN h.title_search LIKE ? THEN 1
+           ELSE 2
+         END,
+         h.number ASC,
+         hc.category_id ASC`,
+      [ftsQuery, normalizedQuery, `${normalizedQuery}%`],
+    );
+    return mapHymnSummaries(rows);
   }
 
-  private async getHymnWithDetails(row: HymnRow | null): Promise<Hymn | null> {
+  private async getHymnWithDetails(row: HymnRow | null) {
     if (!row) {
       return null;
     }
@@ -96,55 +107,23 @@ export class SQLiteHymnRepository implements HymnRepository {
       `SELECT category_id
        FROM hymn_categories
        WHERE hymn_id = ?
-       ORDER BY category_order ASC`,
+       ORDER BY category_id ASC`,
       [row.id],
     );
     const sectionRows = await this.database.getAllAsync<HymnSectionLineRow>(
       `SELECT
          hs.section_type,
-         hs.section_order,
+         hs.position AS section_order,
          hs.section_number,
          hs.label,
-         hsl.line_order,
-         hsl.content
+         hl.position AS line_order,
+         hl.text AS content
        FROM hymn_sections hs
-       INNER JOIN hymn_section_lines hsl
-         ON hsl.hymn_id = hs.hymn_id AND hsl.section_order = hs.section_order
+       INNER JOIN hymn_lines hl ON hl.section_id = hs.id
        WHERE hs.hymn_id = ?
-       ORDER BY hs.section_order ASC, hsl.line_order ASC`,
+       ORDER BY hs.position ASC, hl.position ASC`,
       [row.id],
     );
     return mapHymn(row, categoryRows, sectionRows);
-  }
-
-  private async insertHymn(database: DatabaseExecutor, hymn: Hymn) {
-    await database.runAsync('INSERT INTO hymns (id, number, title) VALUES (?, ?, ?)', [
-      hymn.id,
-      hymn.number,
-      hymn.title,
-    ]);
-
-    for (let categoryIndex = 0; categoryIndex < hymn.categoryIds.length; categoryIndex += 1) {
-      await database.runAsync(
-        `INSERT INTO hymn_categories (hymn_id, category_id, category_order)
-         VALUES (?, ?, ?)`,
-        [hymn.id, hymn.categoryIds[categoryIndex], categoryIndex + 1],
-      );
-    }
-
-    for (const section of hymn.sections) {
-      await database.runAsync(
-        `INSERT INTO hymn_sections (hymn_id, section_order, section_type, section_number, label)
-         VALUES (?, ?, ?, ?, ?)`,
-        [hymn.id, section.order, section.type, section.number ?? null, section.label ?? null],
-      );
-      for (let lineIndex = 0; lineIndex < section.lines.length; lineIndex += 1) {
-        await database.runAsync(
-          `INSERT INTO hymn_section_lines (hymn_id, section_order, line_order, content)
-           VALUES (?, ?, ?, ?)`,
-          [hymn.id, section.order, lineIndex + 1, section.lines[lineIndex]],
-        );
-      }
-    }
   }
 }
